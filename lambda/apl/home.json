@@ -1,0 +1,64 @@
+{
+  "type": "APL",
+  "version": "2023.3",
+  "theme": "light",
+  "mainTemplate": {
+    "parameters": ["payload"],
+    "items": [
+      {
+        "type": "Container",
+        "width": "100vw",
+        "height": "100vh",
+        "backgroundColor": "#FAF7F0",
+        "paddingLeft": "8vw",
+        "paddingRight": "8vw",
+        "paddingTop": "6vh",
+        "direction": "column",
+        "items": [
+          {
+            "type": "Text",
+            "text": "${payload.home.heading}",
+            "fontSize": "40dp",
+            "fontWeight": "700",
+            "color": "#7A5C2E",
+            "paddingBottom": "3vh"
+          },
+          {
+            "type": "Sequence",
+            "grow": 1,
+            "width": "100%",
+            "data": "${payload.home.recipes}",
+            "items": [
+              {
+                "type": "Frame",
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "20dp",
+                "borderColor": "#E8DFC9",
+                "borderWidth": "1dp",
+                "marginBottom": "2.5vh",
+                "paddingTop": "22dp",
+                "paddingBottom": "22dp",
+                "paddingLeft": "28dp",
+                "paddingRight": "28dp",
+                "item": {
+                  "type": "Text",
+                  "text": "${data.title}",
+                  "fontSize": "32dp",
+                  "fontWeight": "600",
+                  "color": "#2B2B2B"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Text",
+            "text": "${payload.home.hint}",
+            "fontSize": "24dp",
+            "color": "#9A8A6B",
+            "paddingBottom": "4vh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "meine küche",
+      "intents": [
+        { "name": "AMAZON.NextIntent", "samples": [] },
+        { "name": "AMAZON.PreviousIntent", "samples": [] },
+        { "name": "AMAZON.RepeatIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "KochenIntent",
+          "slots": [
+            { "name": "rezept", "type": "MiseRecipe" }
+          ],
+          "samples": [
+            "koche {rezept}",
+            "koch {rezept}",
+            "starte {rezept}",
+            "start {rezept}",
+            "ich möchte {rezept} kochen",
+            "ich will {rezept} kochen",
+            "zeig mir das rezept für {rezept}",
+            "wie koche ich {rezept}",
+            "rezept {rezept}",
+            "{rezept}"
+          ]
+        },
+        {
+          "name": "ZutatenIntent",
+          "slots": [],
+          "samples": [
+            "zutaten",
+            "welche zutaten",
+            "welche zutaten brauche ich",
+            "was brauche ich",
+            "zeig mir die zutaten",
+            "die zutaten bitte"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "MiseRecipe",
+          "values": [
+            {
+              "id": "ruehrei",
+              "name": { "value": "Rührei", "synonyms": ["Rühreier", "Eier", "Spiegelei"] }
+            },
+            {
+              "id": "nudeln-tomate",
+              "name": {
+                "value": "Nudeln mit Tomatensauce",
+                "synonyms": ["Nudeln", "Spaghetti", "Pasta", "Spaghetti mit Tomatensauce", "Nudeln mit Tomaten"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
