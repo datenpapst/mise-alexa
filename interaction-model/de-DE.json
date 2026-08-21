@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "mein kochbuch",
+      "invocationName": "mise rezepte",
       "intents": [
         { "name": "AMAZON.NextIntent", "samples": [] },
         { "name": "AMAZON.PreviousIntent", "samples": [] },
