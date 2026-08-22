@@ -3,17 +3,41 @@
     "languageModel": {
       "invocationName": "mise rezepte",
       "intents": [
-        { "name": "AMAZON.NextIntent", "samples": [] },
-        { "name": "AMAZON.PreviousIntent", "samples": [] },
-        { "name": "AMAZON.RepeatIntent", "samples": [] },
-        { "name": "AMAZON.HelpIntent", "samples": [] },
-        { "name": "AMAZON.StopIntent", "samples": [] },
-        { "name": "AMAZON.CancelIntent", "samples": [] },
-        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "AMAZON.NextIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.PreviousIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.RepeatIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
         {
           "name": "KochenIntent",
           "slots": [
-            { "name": "rezept", "type": "MiseRecipe" }
+            {
+              "name": "rezept",
+              "type": "MiseRecipe"
+            }
           ],
           "samples": [
             "koche {rezept}",
@@ -46,14 +70,99 @@
           "name": "MiseRecipe",
           "values": [
             {
-              "id": "ruehrei",
-              "name": { "value": "Rührei", "synonyms": ["Rühreier", "Eier", "Spiegelei"] }
+              "id": "ruehrei-mit-schnittlauch",
+              "name": {
+                "value": "Rührei mit Schnittlauch"
+              }
             },
             {
-              "id": "nudeln-tomate",
+              "id": "spaghetti-bolognese",
               "name": {
-                "value": "Nudeln mit Tomatensauce",
-                "synonyms": ["Nudeln", "Spaghetti", "Pasta", "Spaghetti mit Tomatensauce", "Nudeln mit Tomaten"]
+                "value": "Spaghetti Bolognese"
+              }
+            },
+            {
+              "id": "tomatensuppe",
+              "name": {
+                "value": "Tomatensuppe"
+              }
+            },
+            {
+              "id": "pfannkuchen",
+              "name": {
+                "value": "Pfannkuchen"
+              }
+            },
+            {
+              "id": "gemuesepfanne-mit-reis",
+              "name": {
+                "value": "Gemüsepfanne mit Reis"
+              }
+            },
+            {
+              "id": "linseneintopf",
+              "name": {
+                "value": "Linseneintopf"
+              }
+            },
+            {
+              "id": "kaesespaetzle",
+              "name": {
+                "value": "Käsespätzle"
+              }
+            },
+            {
+              "id": "haehnchen-mit-reis",
+              "name": {
+                "value": "Hähnchen mit Reis"
+              }
+            },
+            {
+              "id": "bratkartoffeln-mit-spiegelei",
+              "name": {
+                "value": "Bratkartoffeln mit Spiegelei"
+              }
+            },
+            {
+              "id": "nudelsalat",
+              "name": {
+                "value": "Nudelsalat"
+              }
+            },
+            {
+              "id": "chili-con-carne",
+              "name": {
+                "value": "Chili con Carne"
+              }
+            },
+            {
+              "id": "milchreis-mit-zimt",
+              "name": {
+                "value": "Milchreis mit Zimt"
+              }
+            },
+            {
+              "id": "ofengemuese",
+              "name": {
+                "value": "Ofengemüse"
+              }
+            },
+            {
+              "id": "frikadellen",
+              "name": {
+                "value": "Frikadellen"
+              }
+            },
+            {
+              "id": "kartoffelsuppe",
+              "name": {
+                "value": "Kartoffelsuppe"
+              }
+            },
+            {
+              "id": "overnight-oats",
+              "name": {
+                "value": "Overnight Oats"
               }
             }
           ]
