@@ -5,15 +5,172 @@
 // "wiederhole" / "Zutaten" durchsteuern. Touch-Buttons (Weiter/Zurück) machen
 // dasselbe für den, der lieber tippt.
 //
-// Datenquelle: lambda/recipes.js (aktuell zwei Testrezepte). Schritt 2 hängt
-// hier den echten Mise-Rezept-Sync an – der Rest des Skills bleibt gleich.
+// Datenquelle: Bei verknuepftem Konto (Account-Linking) werden die echten
+// Mise-Rezepte des Haushalts live von /alexa/recipes geladen. Ohne Verknuepfung
+// oder bei Netzfehler faellt der Skill auf die statischen Seed-Rezepte
+// (lambda/recipes.js) zurueck — er bleibt so immer funktionsfaehig.
 
+const https = require("https");
 const Alexa = require("ask-sdk-core");
 const { RECIPES, findRecipe, listTitles } = require("./recipes");
 const cookingStepDoc = require("./apl/cookingStep.json");
 const homeDoc = require("./apl/home.json");
 
 const APL_IFACE = "Alexa.Presentation.APL";
+
+// Live-Rezept-Endpoint (X-Mise-Key aus der Lambda-Env; ohne Key bleibt der
+// Live-Pfad still aus und der Skill nutzt die Seeds).
+const LIVE_URL =
+  process.env.MISE_RECIPES_URL || "https://mise.c-arena.com/alexa/recipes";
+const MISE_KEY = process.env.MISE_KEY || "";
+
+// Holt die Live-Rezepte des verknuepften Haushalts. Loest IMMER auf (null bei
+// jedem Fehler) — der Skill darf daran nie haengenbleiben oder abstuerzen.
+function fetchLiveRecipes(accessToken) {
+  return new Promise((resolve) => {
+    if (!accessToken) return resolve(null);
+    let url;
+    try {
+      url = new URL(LIVE_URL);
+    } catch (e) {
+      return resolve(null);
+    }
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json"
+    };
+    if (MISE_KEY) headers["X-Mise-Key"] = MISE_KEY;
+    const req = https.request(
+      {
+        hostname: url.hostname,
+        path: url.pathname + url.search,
+        method: "GET",
+        headers,
+        timeout: 4000
+      },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          return resolve(null);
+        }
+        let data = "";
+        res.on("data", (c) => (data += c));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve(Array.isArray(parsed.recipes) ? parsed.recipes : null);
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on("error", () => resolve(null));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.end();
+  });
+}
+
+function slugify(name) {
+  return (
+    String(name)
+      .toLowerCase()
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "rezept"
+  );
+}
+
+// Einmal pro Session die Live-Rezepte laden und in den Session-Attributen
+// cachen. Nicht verknuepft / Fehler / kein Key -> book bleibt leer -> Fallback.
+const LiveRecipesInterceptor = {
+  async process(handlerInput) {
+    const attrs = handlerInput.attributesManager.getSessionAttributes();
+    if (attrs.bookLoaded) return;
+    const sys =
+      handlerInput.requestEnvelope.context &&
+      handlerInput.requestEnvelope.context.System;
+    const accessToken =
+      (sys && sys.user && sys.user.accessToken) ||
+      (handlerInput.requestEnvelope.session &&
+        handlerInput.requestEnvelope.session.user &&
+        handlerInput.requestEnvelope.session.user.accessToken) ||
+      null;
+    const live = await fetchLiveRecipes(accessToken);
+    if (live && live.length) {
+      const book = {};
+      const titles = [];
+      for (const r of live) {
+        if (!r || !r.title) continue;
+        const id = r.id || slugify(r.title);
+        book[id] = {
+          id,
+          title: r.title,
+          ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+          steps: Array.isArray(r.steps) ? r.steps : []
+        };
+        titles.push(r.title);
+      }
+      attrs.book = book;
+      attrs.titles = titles;
+      attrs.linked = true;
+    } else if (accessToken) {
+      // verknuepft, aber (noch) keine Rezepte -> markieren fuer klare Ansage
+      attrs.linked = true;
+    }
+    attrs.bookLoaded = true;
+    handlerInput.attributesManager.setSessionAttributes(attrs);
+  }
+};
+
+// Aktives Rezeptbuch: Live-Rezepte falls geladen, sonst statische Seeds.
+function bookFor(handlerInput) {
+  const attrs = handlerInput.attributesManager.getSessionAttributes();
+  return attrs.book || RECIPES;
+}
+function titlesFor(handlerInput) {
+  const attrs = handlerInput.attributesManager.getSessionAttributes();
+  return attrs.titles && attrs.titles.length ? attrs.titles : listTitles();
+}
+function findFor(handlerInput, spoken, resolvedId) {
+  const attrs = handlerInput.attributesManager.getSessionAttributes();
+  if (!attrs.book) return findRecipe(spoken, resolvedId);
+  const book = attrs.book;
+  if (resolvedId && book[resolvedId]) return book[resolvedId];
+  if (spoken) {
+    const s = slugify(spoken);
+    if (book[s]) return book[s];
+    const low = spoken.toLowerCase();
+    for (const id in book) {
+      const t = book[id].title.toLowerCase();
+      if (t === low || t.includes(low) || low.includes(t)) return book[id];
+    }
+  }
+  return null;
+}
+
+// Dynamic Entities: die Live-Rezeptnamen zur Laufzeit als Slot-Werte fuer
+// MiseRecipe injizieren, damit "koche <mein Rezept>" per Sprache erkannt wird.
+function dynamicEntitiesDirective(handlerInput) {
+  const attrs = handlerInput.attributesManager.getSessionAttributes();
+  if (!attrs.book) return null;
+  const values = Object.keys(attrs.book).map((id) => ({
+    id,
+    name: { value: attrs.book[id].title, synonyms: [] }
+  }));
+  if (!values.length) return null;
+  return {
+    type: "Dialog.UpdateDynamicEntities",
+    updateBehavior: "REPLACE",
+    types: [{ name: "MiseRecipe", values }]
+  };
+}
 
 function supportsAPL(handlerInput) {
   const ifaces =
@@ -74,7 +231,20 @@ function renderStep(handlerInput, recipe, index) {
 }
 
 function renderHome(handlerInput, headingOverride) {
-  const titles = listTitles();
+  const attrs = handlerInput.attributesManager.getSessionAttributes();
+  const titles = titlesFor(handlerInput);
+
+  // Verknuepft, aber leerer Bestand: ehrliche Ansage statt Seed-Rezepte.
+  if (attrs.linked && (!attrs.titles || !attrs.titles.length)) {
+    const msg =
+      (headingOverride || "Willkommen bei Mise.") +
+      " Du hast noch keine Rezepte in Mise. Lege in der App ein Rezept an, dann findest du es hier.";
+    return handlerInput.responseBuilder
+      .speak(msg)
+      .reprompt("Lege in der Mise-App ein Rezept an und probiere es erneut.")
+      .getResponse();
+  }
+
   const heading = headingOverride || "Was möchtest du kochen?";
   const speak =
     `${heading} Ich kenne aktuell ${joinList(titles)}. ` +
@@ -83,6 +253,9 @@ function renderHome(handlerInput, headingOverride) {
   const builder = handlerInput.responseBuilder
     .speak(speak)
     .reprompt(`Sag zum Beispiel: koche ${titles[0]}.`);
+
+  const dyn = dynamicEntitiesDirective(handlerInput);
+  if (dyn) builder.addDirective(dyn);
 
   if (supportsAPL(handlerInput)) {
     builder.addDirective({
@@ -138,7 +311,7 @@ const KochenIntentHandler = {
         }
       }
     }
-    const recipe = findRecipe(spoken, resolvedId);
+    const recipe = findFor(handlerInput, spoken, resolvedId);
     if (!recipe) {
       return renderHome(
         handlerInput,
@@ -152,7 +325,7 @@ const KochenIntentHandler = {
 function currentRecipe(handlerInput) {
   const attrs = handlerInput.attributesManager.getSessionAttributes();
   if (!attrs.recipeId) return null;
-  return { recipe: RECIPES[attrs.recipeId], index: attrs.stepIndex || 0 };
+  return { recipe: bookFor(handlerInput)[attrs.recipeId], index: attrs.stepIndex || 0 };
 }
 
 const NextStepHandler = {
@@ -334,5 +507,6 @@ exports.handler = Alexa.SkillBuilders.custom()
     FallbackHandler,
     SessionEndedHandler
   )
+  .addRequestInterceptors(LiveRecipesInterceptor)
   .addErrorHandlers(ErrorHandler)
   .lambda();
